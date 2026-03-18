@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>House Cup Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .class-card {
+            transition: all 0.3s ease-in-out;
+        }
+        .student-entry {
+            transition: background-color 0.2s ease-in-out;
+        }
+        .action-history::-webkit-scrollbar {
+            width: 4px;
+        }
+        .action-history::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        .action-history::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .action-history::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        #ui-message {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        #custom-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <!-- UI Message Notification -->
+    <div id="ui-message" class="bg-slate-900 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3">
+        <span id="ui-message-text"></span>
+        <button onclick="hideMessage()" class="text-slate-400 hover:text-white">&times;</button>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="custom-modal">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full">
+            <h3 class="text-xl font-bold text-slate-900 mb-2">Confirm Action</h3>
+            <p id="modal-text" class="text-slate-600 mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition">Cancel</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-bold text-slate-900">House Cup Tracker</h1>
+            <p class="text-slate-600 mt-2">JOPA Bilingual Team Performance Management System</p>
+        </header>
+
+        <!-- Data Import/Export Buttons -->
+        <div class="flex justify-center flex-wrap gap-4 mb-8">
+            <button onclick="exportData()" class="flex items-center gap-2 bg-indigo-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-indigo-700 transition shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export JSON
+            </button>
+            <button onclick="triggerImport()" class="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 font-medium py-2 px-4 rounded-lg hover:bg-slate-50 transition shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Import JSON
+            </button>
+            <input type="file" id="import-input" class="hidden" accept=".json" onchange="importData(event)">
+        </div>
+
+        <!-- Add New Class Form -->
+        <div class="bg-white p-6 rounded-xl shadow-md mb-8 max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 class="text-2xl font-semibold text-slate-800">Class Points</h2>
+                <span id="class-counter" class="text-sm font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-600">Classes: 0/3</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-semibold text-slate-600">Teacher</label>
+                    <select id="new-class-teacher" class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition bg-white text-sm">
+                        <option value="Barry">Barry</option>
+                        <option value="Caio">Caio</option>
+                        <option value="Charlie">Charlie</option>
+                        <option value="Eddie">Eddie</option>
+                        <option value="Ingrid">Ingrid</option>
+                        <option value="Laryssa">Laryssa</option>
+                        <option value="Natalia">Natalia</option>
+                        <option value="Simone">Simone</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-semibold text-slate-600">Team</label>
+                    <select id="new-class-team" class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition bg-white text-sm">
+                        <option value="TeamA">Team A</option>
+                        <option value="TeamB1">Team B1</option>
+                        <option value="TeamB2">Team B2</option>
+                        <option value="TeamC">Team C</option>
+                        <option value="TeamD">Team D</option>
+                        <option value="TeamE">Team E</option>
+                        <option value="TeamF">Team F</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-semibold text-slate-600">Subject</label>
+                    <select id="new-class-subject" class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition bg-white text-sm">
+                        <option value="Science">Science</option>
+                        <option value="Storytelling">Storytelling</option>
+                        <option value="Music">Music</option>
+                        <option value="Arts">Arts</option>
+                        <option value="Tech">Tech</option>
+                        <option value="B&M">B&M</option>
+                        <option value="Pedagogical Support">Pedagogical Support</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-1 lg:col-span-2">
+                    <label class="text-sm font-semibold text-slate-600">Date</label>
+                    <input type="date" id="new-class-date" class="p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none transition bg-white text-sm">
+                </div>
+                <div class="flex items-end">
+                    <button id="add-class-btn" onclick="addClass()" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition shadow-sm flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Create Class
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classes Container -->
+        <main id="classes-container" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Class cards dynamically inserted here -->
+        </main>
+
+        <!-- Welcome Message -->
+        <div id="welcome-message" class="text-center p-10 bg-white rounded-xl shadow-md mt-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No classes registered</h3>
+            <p class="mt-1 text-sm text-gray-500">Add up to 3 classes for today's session.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA MANAGEMENT ---
+        let classes = [];
+        let modalAction = null;
+
+        window.onload = () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('new-class-date').value = today;
+            loadData();
+            renderClasses();
+        };
+
+        function showMessage(text) {
+            const el = document.getElementById('ui-message');
+            const txt = document.getElementById('ui-message-text');
+            txt.innerText = text;
+            el.style.display = 'flex';
+            setTimeout(hideMessage, 4000);
+        }
+
+        function hideMessage() {
+            document.getElementById('ui-message').style.display = 'none';
+        }
+
+        // --- MODAL LOGIC ---
+        function openModal(text, onConfirm) {
+            document.getElementById('modal-text').innerText = text;
+            document.getElementById('custom-modal').style.display = 'flex';
+            document.getElementById('modal-confirm-btn').onclick = () => {
+                onConfirm();
+                closeModal();
+            };
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').style.display = 'none';
+        }
+
+        // --- CORE LOGIC ---
+        function clamp(val) {
+            return Math.max(-100, Math.min(200, val));
+        }
+
+        /**
+         * Calculate Student Score:
+         * Base (100) + Individual Actions ONLY.
+         * (Collective Actions do NOT affect individual scores)
+         */
+        function calculateStudentScore(student) {
+            let score = 100;
+            if (student.actions) {
+                student.actions.forEach(action => {
+                    if (action.type === 'positive') score += 10;
+                    else if (action.type === 'negative') score -= 10;
+                });
+            }
+            return clamp(score);
+        }
+
+        /**
+         * Calculate Class Overall Score:
+         * Base (100) + Collective Actions + All Student Actions
+         */
+        function calculateClassScore(classObj) {
+            let score = 100;
+            // Add Collective Actions
+            if (classObj.generalActions) {
+                classObj.generalActions.forEach(action => {
+                    if (action.type === 'positive') score += 10;
+                    else if (action.type === 'negative') score -= 10;
+                });
+            }
+            // Add Every Individual Action from Every Student
+            if (classObj.students) {
+                classObj.students.forEach(student => {
+                    if (student.actions) {
+                        student.actions.forEach(action => {
+                            if (action.type === 'positive') score += 10;
+                            else if (action.type === 'negative') score -= 10;
+                        });
+                    }
+                });
+            }
+            return clamp(score);
+        }
+
+        // --- RENDERING ---
+        function renderClasses() {
+            const container = document.getElementById('classes-container');
+            const welcomeMessage = document.getElementById('welcome-message');
+            const counterLabel = document.getElementById('class-counter');
+            const addBtn = document.getElementById('add-class-btn');
+            const dateInput = document.getElementById('new-class-date');
+            const teacherInput = document.getElementById('new-class-teacher');
+
+            container.innerHTML = '';
+            counterLabel.innerText = `Classes: ${classes.length}/3`;
+
+            if (classes.length >= 3) {
+                addBtn.disabled = true;
+            } else {
+                addBtn.disabled = false;
+            }
+
+            if (classes.length > 0) {
+                dateInput.value = classes[0].date;
+                dateInput.disabled = true;
+                teacherInput.value = classes[0].teacher;
+                teacherInput.disabled = true;
+            } else {
+                dateInput.disabled = false;
+                teacherInput.disabled = false;
+            }
+
+            if (classes.length === 0) {
+                welcomeMessage.style.display = 'block';
+                container.style.display = 'none';
+            } else {
+                welcomeMessage.style.display = 'none';
+                container.style.display = 'grid';
+            }
+
+            classes.forEach((classObj, classIndex) => {
+                const classGeneralScore = calculateClassScore(classObj);
+                const generalScoreColor = classGeneralScore >= 100 ? 'text-green-600' : (classGeneralScore >= 80 ? 'text-blue-600' : 'text-red-600');
+                
+                const dateParts = classObj.date.split('-');
+                const displayDate = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+
+                let generalActionsHtml = '';
+                if (classObj.generalActions && classObj.generalActions.length > 0) {
+                    generalActionsHtml = `
+                        <div class="mt-3">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Collective Action Log (Class Only):</p>
+                            <ul class="action-history max-h-24 overflow-y-auto space-y-1 pr-1">
+                                ${classObj.generalActions.map((a, actionIndex) => `
+                                    <li class="text-[11px] flex justify-between items-center p-1.5 rounded ${a.type === 'positive' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}">
+                                        <span class="truncate pr-2">${a.description}</span>
+                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                            <span class="font-bold">${a.type === 'positive' ? '+10%' : '-10%'}</span>
+                                            <button onclick="removeActionFromClass(${classIndex}, ${actionIndex})" class="text-slate-400 hover:text-red-500 transition leading-none text-xs">✕</button>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                const classCard = document.createElement('div');
+                classCard.className = 'class-card bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500 flex flex-col h-full';
+                classCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded">Teacher: ${classObj.teacher}</span>
+                                <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">${classObj.team}</span>
+                                <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded">${classObj.subject}</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mt-2">${displayDate}</h3>
+                            <p class="text-slate-800 text-2xl mt-2">Overall Score: <span class="font-black ${generalScoreColor}">${classGeneralScore}%</span></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="deleteClass(${classIndex})" title="Delete" class="text-slate-400 hover:text-red-500 transition p-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 mb-6 p-4 border border-indigo-100 bg-indigo-50 rounded-lg shadow-inner">
+                        <p class="text-xs font-bold text-indigo-900 mb-2 uppercase tracking-wider">Collective Action:</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-center">
+                            <input type="text" id="action-desc-class-${classIndex}" placeholder="Reason..." class="w-full p-2 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-400 outline-none">
+                            <div class="flex gap-2">
+                                <button onclick="addActionToClass(${classIndex}, 'positive')" class="flex-1 bg-green-500 text-white text-xs font-bold py-2 rounded-md hover:bg-green-600 transition shadow-sm">+10%</button>
+                                <button onclick="addActionToClass(${classIndex}, 'negative')" class="flex-1 bg-red-500 text-white text-xs font-bold py-2 rounded-md hover:bg-red-600 transition shadow-sm">-10%</button>
+                            </div>
+                        </div>
+                        ${generalActionsHtml}
+                    </div>
+
+                    <div class="space-y-6 flex-grow">
+                        <div>
+                            <h4 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                                Individual Students
+                            </h4>
+                            <div class="flex gap-2 mb-4">
+                                <input type="text" id="new-student-name-${classIndex}" placeholder="New student name" class="flex-grow p-2 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-400 outline-none">
+                                <button onclick="addStudent(${classIndex})" class="bg-indigo-500 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-600 transition shadow-sm text-xs">Add</button>
+                            </div>
+                        </div>
+
+                        <div id="student-list-${classIndex}" class="space-y-4">
+                            <!-- Student items -->
+                        </div>
+                    </div>
+                `;
+                container.appendChild(classCard);
+                renderStudents(classIndex);
+            });
+            saveData();
+        }
+
+        function renderStudents(classIndex) {
+            const studentListContainer = document.getElementById(`student-list-${classIndex}`);
+            const classObj = classes[classIndex];
+            studentListContainer.innerHTML = '';
+
+            classObj.students.forEach((student, studentIndex) => {
+                const studentScore = calculateStudentScore(student);
+                const scoreColor = studentScore >= 100 ? 'text-green-600' : (studentScore >= 80 ? 'text-blue-600' : 'text-red-600');
+                
+                let actionsHtml = '';
+                if (student.actions && student.actions.length > 0) {
+                    actionsHtml = `
+                        <div class="mt-2 pt-2 border-t border-slate-200">
+                             <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Student Action Log:</p>
+                             <ul class="action-history max-h-20 overflow-y-auto space-y-1 pr-1">
+                                ${student.actions.map((a, actionIndex) => `
+                                    <li class="text-[10px] flex justify-between items-center p-1 rounded ${a.type === 'positive' ? 'bg-green-50/50 text-green-700' : 'bg-red-50/50 text-red-700'}">
+                                        <span class="truncate pr-1">${a.description}</span>
+                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                            <span class="font-bold">${a.type === 'positive' ? '+10%' : '-10%'}</span>
+                                            <button onclick="removeActionFromStudent(${classIndex}, ${studentIndex}, ${actionIndex})" class="text-slate-400 hover:text-red-500 transition leading-none text-[10px]">✕</button>
+                                        </div>
+                                    </li>
+                                `).join('')}
+                             </ul>
+                        </div>
+                    `;
+                }
+
+                const studentEntry = document.createElement('div');
+                studentEntry.className = 'student-entry bg-slate-50 p-4 rounded-lg border border-slate-200 shadow-sm';
+                studentEntry.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-slate-700 text-sm">${student.name}</span>
+                        <span class="font-black text-lg ${scoreColor}">${studentScore}%</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input type="text" id="action-desc-${classIndex}-${studentIndex}" placeholder="Reason..." class="p-1.5 border border-slate-300 rounded text-[11px] focus:ring-1 focus:ring-indigo-400 outline-none">
+                        <div class="flex gap-1">
+                            <button onclick="addAction(${classIndex}, ${studentIndex}, 'positive')" class="flex-1 bg-green-100 text-green-700 font-bold py-1 px-2 rounded text-[10px] hover:bg-green-200 transition">+10%</button>
+                            <button onclick="addAction(${classIndex}, ${studentIndex}, 'negative')" class="flex-1 bg-red-100 text-red-700 font-bold py-1 px-2 rounded text-[10px] hover:bg-red-200 transition">-10%</button>
+                            <button onclick="deleteStudent(${classIndex}, ${studentIndex})" class="text-slate-300 hover:text-red-400 transition ml-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    ${actionsHtml}
+                `;
+                studentListContainer.appendChild(studentEntry);
+            });
+        }
+
+        // --- ACTIONS ---
+        function addClass() {
+            if (classes.length >= 3) return showMessage("Maximum of 3 classes reached.");
+            const teacher = document.getElementById('new-class-teacher').value;
+            const team = document.getElementById('new-class-team').value;
+            const subject = document.getElementById('new-class-subject').value;
+            const date = document.getElementById('new-class-date').value;
+            if (!date) return showMessage("Please select a date.");
+
+            classes.push({
+                teacher: teacher,
+                team: team,
+                subject: subject,
+                date: date,
+                generalActions: [],
+                students: []
+            });
+            renderClasses();
+            showMessage(`Class added (${classes.length}/3).`);
+        }
+
+        function deleteClass(index) {
+            openModal("Do you really want to delete this class?", () => {
+                classes.splice(index, 1);
+                renderClasses();
+                showMessage("Class deleted.");
+            });
+        }
+
+        function addStudent(classIndex) {
+            const input = document.getElementById(`new-student-name-${classIndex}`);
+            const name = input.value.trim();
+            if (name) {
+                if (!classes[classIndex].students) classes[classIndex].students = [];
+                classes[classIndex].students.push({ name: name, actions: [] });
+                input.value = '';
+                renderClasses();
+            }
+        }
+
+        function deleteStudent(classIndex, studentIndex) {
+            openModal(`Delete student "${classes[classIndex].students[studentIndex].name}"?`, () => {
+                classes[classIndex].students.splice(studentIndex, 1);
+                renderClasses();
+                showMessage("Student deleted.");
+            });
+        }
+
+        function addAction(classIndex, studentIndex, type) {
+            const input = document.getElementById(`action-desc-${classIndex}-${studentIndex}`);
+            const desc = input.value.trim() || (type === 'positive' ? 'Participation' : 'Deduction');
+            if (!classes[classIndex].students[studentIndex].actions) classes[classIndex].students[studentIndex].actions = [];
+            classes[classIndex].students[studentIndex].actions.push({ description: desc, type: type });
+            input.value = '';
+            renderClasses();
+        }
+
+        function addActionToClass(classIndex, type) {
+            const input = document.getElementById(`action-desc-class-${classIndex}`);
+            const desc = input.value.trim() || (type === 'positive' ? 'Good behavior' : 'Interruption');
+            if (!classes[classIndex].generalActions) classes[classIndex].generalActions = [];
+            classes[classIndex].generalActions.push({ description: desc, type: type });
+            input.value = '';
+            renderClasses();
+        }
+
+        function removeActionFromClass(classIndex, actionIndex) {
+            classes[classIndex].generalActions.splice(actionIndex, 1);
+            renderClasses();
+            showMessage("Action removed.");
+        }
+
+        function removeActionFromStudent(classIndex, studentIndex, actionIndex) {
+            classes[classIndex].students[studentIndex].actions.splice(actionIndex, 1);
+            renderClasses();
+            showMessage("Action removed.");
+        }
+
+        // --- EXPORT/IMPORT ---
+        function exportData() {
+            if (classes.length === 0) return showMessage("No data to export.");
+            const firstClass = classes[0];
+            const dateParts = firstClass.date.split('-'); 
+            const yy = dateParts[0].slice(-2);
+            const mm = dateParts[1];
+            const dd = dateParts[2];
+            const fileName = `${firstClass.teacher}_${dd}_${mm}_${yy}.json`;
+            downloadJson(classes, fileName);
+        }
+
+        function downloadJson(data, filename) {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", filename);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+            showMessage(`Exported: ${filename}`);
+        }
+
+        function triggerImport() { document.getElementById('import-input').click(); }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        openModal("Import will overwrite current data. Continue?", () => {
+                            classes = imported.slice(0, 3);
+                            saveData();
+                            renderClasses();
+                            showMessage("Data imported.");
+                        });
+                    } else { showMessage("Invalid file format."); }
+                } catch (err) { showMessage("Error reading JSON."); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function saveData() { localStorage.setItem('classPointsData', JSON.stringify(classes)); }
+        function loadData() {
+            const data = localStorage.getItem('classPointsData');
+            if (data) {
+                try {
+                    classes = JSON.parse(data);
+                } catch(e) {
+                    classes = [];
+                }
+            }
+        }
+    </script>
+</body>
+</html>
